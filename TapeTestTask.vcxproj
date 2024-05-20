@@ -154,7 +154,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileTape.cpp" />
+    <ClCompile Include="InputUtils.cpp" />
+    <ClCompile Include="TapeConfigData.cpp" />
+    <ClCompile Include="TapeConfigLoader.cpp" />
     <ClCompile Include="TapeTestTask.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FileTape.h" />
+    <ClInclude Include="InputUtils.h" />
+    <ClInclude Include="ITape.h" />
+    <ClInclude Include="TapeConfigData.h" />
+    <ClInclude Include="TapeConfigLoader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
