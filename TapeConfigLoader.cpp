@@ -6,7 +6,7 @@
 #include <sstream>
 #include <unordered_map>
 
-#include "InputUtils.h"
+#include "utils/InputUtils.h"
 
 bool TapeConfigLoader::loadConfig(const std::string& filePath, TapeConfigData& configData)
 {

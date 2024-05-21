@@ -1,17 +1,41 @@
-#include "TapeRAM.h"
+#include "TapesRAM.h"
 
-bool TapeRAM::write(unsigned char value, int index)
+#include <iostream>
+
+
+TapesRAM::TapesRAM(long sizeInBytes) : RAMData(sizeInBytes, 0u)
 {
 }
 
-unsigned char TapeRAM::read(int index)
+bool TapesRAM::write(unsigned char value, size_t index)
 {
+    if (!haveRAMDataIndex(index))
+    {
+        std::cerr << "Cannot write RAM value, the index is out of range!" << std::endl;
+        return false;
+    }
+
+    RAMData[index] = value;
+    return true;
 }
 
-bool TapeRAM::writeInt(int value, int firstByteIndex)
+unsigned char TapesRAM::read(size_t index)
 {
+    if (!haveRAMDataIndex(index))
+    {
+        std::cerr << "Cannot read RAM value, the index is out of range!" << std::endl;
+        return 0u;
+    }
+
+    return RAMData[index];
 }
 
-int TapeRAM::readInt(int firstByteIndex)
+size_t TapesRAM::getSize()
 {
+    return RAMData.size();
+}
+
+bool TapesRAM::haveRAMDataIndex(size_t index)
+{
+    return index < RAMData.size();
 }

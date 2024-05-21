@@ -1,11 +1,19 @@
 #pragma once
+#include <vector>
+
 #include "IRAM.h"
 
-class TapeRAM : public IRAM
+class TapesRAM : public IRAM
 {
 public:
-    bool write(unsigned char value, int index) override;
-    unsigned char read(int index) override;
-    bool writeInt(int value, int firstByteIndex) override;
-    int readInt(int firstByteIndex) override;
+    TapesRAM(long sizeInBytes);
+    
+    bool write(unsigned char value, size_t index) override;
+    unsigned char read(size_t index) override;
+    size_t getSize() override;
+
+private:
+    std::vector<unsigned char> RAMData;
+
+    bool haveRAMDataIndex(size_t index);
 };
