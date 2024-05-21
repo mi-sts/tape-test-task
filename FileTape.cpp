@@ -68,56 +68,13 @@ int FileTape::read()
 
 bool FileTape::write(int value)
 {
-    if (!tapeFile.is_open() || tapeFile.fail())
-    {
-        std::cerr << "Cannot read the tape data file!" << std::endl;
-        return false;
-    }
-
-    std::fstream tempFile;
-    std::string tempFilePath = FileUtils::createTempFile(tempFile);
-    if (tempFilePath.empty())
-    {
-        std::cerr << "Cannot create the temp file!" << std::endl;
-        return false;
-    }
-
-    std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
-    
-    std::vector<char> leftPartBuffer(tapeFilePointer, 0);
-    tapeFile.seekg(0, std::ios::beg);
-    tapeFile.read(leftPartBuffer.data(), leftPartBuffer.size());
-    tempFile.write(leftPartBuffer.data(), leftPartBuffer.size());
-
     const std::string valueString = std::to_string(value);
-    tempFile.write(valueString.c_str(), valueString.size());
+    return writeString(valueString);
+}
 
-    const std::streamoff previousValueLastDigitPointer = getValueLastDigitPointer(tapeFilePointer);
-    if (previousValueLastDigitPointer != tapeFileSize - 1)
-    {
-        std::vector<char> rightPartBuffer(tapeFileSize - (previousValueLastDigitPointer + 1), 0);
-        tapeFile.seekg(previousValueLastDigitPointer + 1, std::ios::beg);
-        tapeFile.read(rightPartBuffer.data(), rightPartBuffer.size());
-        tempFile.write(rightPartBuffer.data(), rightPartBuffer.size());
-    }
-
-    tapeFile.close();
-    tapeFile.open(tapeFilePath, std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
-
-    std::streamoff tempFileSize = FileUtils::getFileSize(tempFile);
-    std::vector<char> tempFileBuffer(tempFileSize, 0);
-    tempFile.seekg(0);
-    tempFile.read(tempFileBuffer.data(), tempFileBuffer.size());
-    tempFile.close();
-    if (!FileUtils::deleteFile(tempFilePath))
-    {
-        std::cerr << "Cannot delete the temp file!" << std::endl;
-    }
-    
-    tapeFile.write(tempFileBuffer.data(), tempFileBuffer.size());
-    executionTime += tapeConfigData.writeDelay;
-
-    return true;
+bool FileTape::clearValue()
+{
+    return writeString(" ");
 }
 
 bool FileTape::rewindLeft(int cellsNumber)
@@ -153,6 +110,59 @@ bool FileTape::rewindRight(int cellsNumber)
     cellIndex += movementsNumber;
     executionTime += tapeConfigData.rewindPerElementDelay * movementsNumber;
     return movementsNumber == cellsNumber;
+}
+
+bool FileTape::writeString(std::string str)
+{
+    if (!tapeFile.is_open() || tapeFile.fail())
+    {
+        std::cerr << "Cannot read the tape data file!" << std::endl;
+        return false;
+    }
+
+    std::fstream tempFile;
+    std::string tempFilePath = FileUtils::createTempFile(tempFile);
+    if (tempFilePath.empty())
+    {
+        std::cerr << "Cannot create the temp file!" << std::endl;
+        return false;
+    }
+
+    std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
+    
+    std::vector<char> leftPartBuffer(tapeFilePointer, 0);
+    tapeFile.seekg(0, std::ios::beg);
+    tapeFile.read(leftPartBuffer.data(), leftPartBuffer.size());
+    tempFile.write(leftPartBuffer.data(), leftPartBuffer.size());
+
+    tempFile.write(str.c_str(), str.size());
+
+    const std::streamoff previousValueLastDigitPointer = getValueLastDigitPointer(tapeFilePointer);
+    if (previousValueLastDigitPointer != tapeFileSize - 1)
+    {
+        std::vector<char> rightPartBuffer(tapeFileSize - (previousValueLastDigitPointer + 1), 0);
+        tapeFile.seekg(previousValueLastDigitPointer + 1, std::ios::beg);
+        tapeFile.read(rightPartBuffer.data(), rightPartBuffer.size());
+        tempFile.write(rightPartBuffer.data(), rightPartBuffer.size());
+    }
+
+    tapeFile.close();
+    tapeFile.open(tapeFilePath, std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
+
+    std::streamoff tempFileSize = FileUtils::getFileSize(tempFile);
+    std::vector<char> tempFileBuffer(tempFileSize, 0);
+    tempFile.seekg(0);
+    tempFile.read(tempFileBuffer.data(), tempFileBuffer.size());
+    tempFile.close();
+    if (!FileUtils::deleteFile(tempFilePath))
+    {
+        std::cerr << "Cannot delete the temp file!" << std::endl;
+    }
+    
+    tapeFile.write(tempFileBuffer.data(), tempFileBuffer.size());
+    executionTime += tapeConfigData.writeDelay;
+
+    return true;
 }
 
 void FileTape::resetExecutionTime()

@@ -15,9 +15,19 @@ public:
     bool moveRight() override;
     int read() override;
     bool write(int value) override;
+    bool clearValue() override;
     bool rewindLeft(int cellsNumber) override;
     bool rewindRight(int cellsNumber) override;
     
+private:
+    std::fstream tapeFile;
+    std::string tapeFilePath;
+    std::streamoff tapeFilePointer;
+    int cellIndex;
+    long executionTime;
+    TapeConfigData tapeConfigData;
+
+    bool writeString(std::string str);
     void resetExecutionTime();
     void initializeTapeData(const std::string& tapeFilePath);
     void initializeTapeConfigData(const std::string& tapeConfigPath);
@@ -28,12 +38,4 @@ public:
     bool moveTapePointerRight();
     bool moveTapePointerLeft();
     bool isValueSymbol(char symbol);
-    
-private:
-    std::fstream tapeFile;
-    std::string tapeFilePath;
-    std::streamoff tapeFilePointer;
-    int cellIndex;
-    long executionTime;
-    TapeConfigData tapeConfigData;
 };
