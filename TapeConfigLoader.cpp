@@ -21,12 +21,14 @@ bool TapeConfigLoader::loadConfig(const std::string& filePath, TapeConfigData& c
     int writeDelay = -1;
     int moveNextDelay = -1;
     int rewindPerElementDelay = -1;
+    int RAMBytesSize = -1;
     
     std::map<std::string, int*> paramNameToPointerMap = {
         {"READ_DELAY", &readDelay},
         {"WRITE_DELAY", &writeDelay},
         {"MOVE_NEXT_DELAY", &moveNextDelay},
-        {"REWIND_PER_ELEMENT_DELAY", &rewindPerElementDelay}
+        {"REWIND_PER_ELEMENT_DELAY", &rewindPerElementDelay},
+        {"RAM_BYTES_SIZE", &RAMBytesSize}
     };
 
     int processedLinesNumber = 0;
@@ -34,9 +36,7 @@ bool TapeConfigLoader::loadConfig(const std::string& filePath, TapeConfigData& c
     {
         std::vector<std::string> splittedLine = InputUtils::split(line, '=');
         if (splittedLine.empty())
-        {
             continue;
-        }
         
         if (splittedLine.size() != 2)
         {
@@ -77,6 +77,6 @@ bool TapeConfigLoader::loadConfig(const std::string& filePath, TapeConfigData& c
         return false;
     }
 
-    configData = TapeConfigData(readDelay, writeDelay, moveNextDelay, rewindPerElementDelay);
+    configData = TapeConfigData(readDelay, writeDelay, moveNextDelay, rewindPerElementDelay, RAMBytesSize);
     return true;
 }

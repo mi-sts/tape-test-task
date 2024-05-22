@@ -5,7 +5,7 @@ class ITape
 public:
     virtual bool moveLeft() = 0;
     virtual bool moveRight() = 0;
-    virtual int read() = 0;
+    virtual bool read(int& value) = 0;
     virtual bool write(int value) = 0;
     virtual bool clearValue() = 0;
     virtual bool rewindLeft(int cellsNumber) = 0;

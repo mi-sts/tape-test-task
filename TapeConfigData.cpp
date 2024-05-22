@@ -4,8 +4,9 @@ TapeConfigData::TapeConfigData(
     int readDelay,
     int writeDelay,
     int moveNextDelay,
-    int rewindPerElementDelay
+    int rewindPerElementDelay,
+    int RAMBytesSize
 ) : readDelay(readDelay), writeDelay(writeDelay), moveNextDelay(moveNextDelay),
-    rewindPerElementDelay(rewindPerElementDelay)
+    rewindPerElementDelay(rewindPerElementDelay), RAMBytesSize(RAMBytesSize)
 {
 }

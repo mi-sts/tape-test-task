@@ -14,7 +14,7 @@ std::string FileUtils::createTempFile(std::fstream& fileStream)
     millisecondsStringStream << sinceEpochMilliseconds;
     const std::string millisecondsString = millisecondsStringStream.str();
     
-    std::string tempFilePath = "tmpfile" + millisecondsString + ".txt";
+    std::string tempFilePath = "tmp/tmpfile" + millisecondsString + ".txt";
     fileStream.open(tempFilePath, std::ios::out | std::ios::in | std::ios::trunc);
     if (!fileStream.is_open())
     {

@@ -9,11 +9,10 @@
 const char ValuesDelimiterSymbol = '|';
 const char EmptyValueSymbol = ' ';
 
-FileTape::FileTape(const std::string& tapeFilePath, const std::string& configFilePath) :
-    tapeFilePath(tapeFilePath), tapeFilePointer(0), cellIndex(0), executionTime(0)
+FileTape::FileTape(const std::string& tapeFilePath, const TapeConfigData& tapeConfigData) :
+    tapeFilePath(tapeFilePath), tapeFilePointer(0), cellIndex(0), executionTime(0), tapeConfigData(tapeConfigData)
 {
     initializeTapeData(tapeFilePath);
-    initializeTapeConfigData(configFilePath);
 }
 
 bool FileTape::moveLeft()
@@ -46,24 +45,48 @@ bool FileTape::moveRight()
     return isMoved;
 }
 
-int FileTape::read()
+bool FileTape::read(int& value)
 {
     if (!tapeFile.is_open() || tapeFile.fail())
     {
         std::cerr << "Cannot read the tape data file!" << std::endl;
-        return 0;
+        return false;
     }
 
     tapeFile.seekg(tapeFilePointer, std::ios::beg);
     int number = 0;
     char numberSymbol;
-    while (tapeFile.get(numberSymbol) && std::isdigit(numberSymbol))
+    tapeFile.get(numberSymbol);
+    bool isNegative = false;
+    if (!std::isdigit(numberSymbol) && numberSymbol != '-')
     {
-        number = number * 10 + (numberSymbol - '0');
+        tapeFile.seekg(tapeFilePointer, std::ios::beg);
+        return false;
     }
 
+    if (numberSymbol == '-')
+    {
+        if (!(tapeFile.get(numberSymbol) && std::isdigit(numberSymbol)))
+            return false;
+        
+        isNegative = true;
+    }
+
+    std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
+    std::streamoff currentFilePointer = tapeFilePointer;
+    do
+    {
+        number = number * 10 + (numberSymbol - '0');
+        ++currentFilePointer;
+    } while (currentFilePointer != tapeFileSize && tapeFile.get(numberSymbol) && std::isdigit(numberSymbol));
+    
+    if (isNegative)
+        number *= -1;
+    
     executionTime += tapeConfigData.readDelay;
-    return number;
+    value = number;
+    
+    return true;
 }
 
 bool FileTape::write(int value)
@@ -80,9 +103,7 @@ bool FileTape::clearValue()
 bool FileTape::rewindLeft(int cellsNumber)
 {
     if (cellIndex < cellsNumber)
-    {
         return false;
-    }
 
     int movementsNumber = 0;
     for (movementsNumber = 0; movementsNumber < cellsNumber; ++movementsNumber)
@@ -108,8 +129,13 @@ bool FileTape::rewindRight(int cellsNumber)
     }
     
     cellIndex += movementsNumber;
-    executionTime += tapeConfigData.rewindPerElementDelay * movementsNumber;
+    executionTime += static_cast<long long>(tapeConfigData.rewindPerElementDelay) * movementsNumber;
     return movementsNumber == cellsNumber;
+}
+
+long long FileTape::getExecutionTime()
+{
+    return executionTime;
 }
 
 bool FileTape::writeString(std::string str)
@@ -120,6 +146,14 @@ bool FileTape::writeString(std::string str)
         return false;
     }
 
+    std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
+
+    if (tapeFileSize == 0)
+    {
+        tapeFile.write(str.c_str(), str.size());
+        return true;
+    }
+    
     std::fstream tempFile;
     std::string tempFilePath = FileUtils::createTempFile(tempFile);
     if (tempFilePath.empty())
@@ -127,8 +161,6 @@ bool FileTape::writeString(std::string str)
         std::cerr << "Cannot create the temp file!" << std::endl;
         return false;
     }
-
-    std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
     
     std::vector<char> leftPartBuffer(tapeFilePointer, 0);
     tapeFile.seekg(0, std::ios::beg);
@@ -155,9 +187,7 @@ bool FileTape::writeString(std::string str)
     tempFile.read(tempFileBuffer.data(), tempFileBuffer.size());
     tempFile.close();
     if (!FileUtils::deleteFile(tempFilePath))
-    {
         std::cerr << "Cannot delete the temp file!" << std::endl;
-    }
     
     tapeFile.write(tempFileBuffer.data(), tempFileBuffer.size());
     executionTime += tapeConfigData.writeDelay;
@@ -174,14 +204,7 @@ void FileTape::initializeTapeData(const std::string& tapeFilePath)
 {
     tapeFile.open(tapeFilePath, std::ios::binary | std::ios::in | std::ios::out);
     if (!tapeFile.is_open())
-    {
         std::cerr << "Cannot open the tape data file!" << std::endl;
-    }
-}
-
-void FileTape::initializeTapeConfigData(const std::string& tapeConfigPath)
-{
-    TapeConfigLoader::loadConfig(tapeConfigPath, tapeConfigData);
 }
 
 std::streamoff FileTape::getValueLastDigitPointer(std::streamoff fromPointer)

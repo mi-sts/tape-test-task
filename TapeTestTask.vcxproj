@@ -158,6 +158,7 @@
     <ClCompile Include="TapeConfigData.cpp" />
     <ClCompile Include="TapeConfigLoader.cpp" />
     <ClCompile Include="TapesRAM.cpp" />
+    <ClCompile Include="TapesSorter.cpp" />
     <ClCompile Include="TapeTestTask.cpp" />
     <ClCompile Include="utils\FileUtils.cpp" />
     <ClCompile Include="utils\InputUtils.cpp">
@@ -243,9 +244,16 @@
     <ClInclude Include="TapeConfigData.h" />
     <ClInclude Include="TapeConfigLoader.h" />
     <ClInclude Include="TapesRAM.h" />
+    <ClInclude Include="TapesSorter.h" />
     <ClInclude Include="utils\FileUtils.h" />
     <ClInclude Include="utils\InputUtils.h" />
     <ClInclude Include="utils\RAMUtils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="input_tape.txt" />
+    <Content Include="output_tape.txt" />
+    <Content Include="tape_config.txt" />
+    <Content Include="tmp\.gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

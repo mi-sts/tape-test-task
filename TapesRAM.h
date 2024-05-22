@@ -6,6 +6,7 @@
 class TapesRAM : public IRAM
 {
 public:
+    TapesRAM() = default;
     TapesRAM(long sizeInBytes);
     
     bool write(unsigned char value, size_t index) override;
