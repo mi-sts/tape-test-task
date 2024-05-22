@@ -25,7 +25,7 @@ private:
     FileTape* outputTape;
     std::vector<FileTape*> tempTapes;
     std::vector<std::string> tempTapesFilePaths;
-    unsigned char mergeWaysNumber;
+    int mergeWaysNumber;
     long long sortedNumbersCount;
     bool mergeToSecondHalf;
     long long currentChunkSize;

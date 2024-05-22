@@ -6,25 +6,33 @@
 #include "utils/FileUtils.h"
 #include "utils/RAMUtils.h"
 
+const int MAX_TEMP_FILES_NUMBER = 128;
+
 TapesSorter::TapesSorter(
     const std::string& inputTapeFilePath,
     const std::string& outputTapeFilePath,
     const std::string& configFilePath
 ) : inputTape(nullptr),
     outputTape(nullptr),
-    mergeWaysNumber(4u),
+    mergeWaysNumber(2),
     sortedNumbersCount(0),
     mergeToSecondHalf(true),
     currentChunkSize(1),
     isSorted(false)
 {
     TapeConfigLoader::loadConfig(configFilePath, tapeConfigData);
-    tapesRAM = TapesRAM(tapeConfigData.RAMBytesSize);
+    tapesRAM = TapesRAM(1000);
+    mergeWaysNumber = std::min<int>(tapeConfigData.RAMBytesSize / 4 / 2, MAX_TEMP_FILES_NUMBER);
+    if (mergeWaysNumber % 2 != 0)
+        --mergeWaysNumber;
+    if (mergeWaysNumber < 2)
+    {
+        std::cerr << "Not enough RAM for the sorting algorithm!\n"
+                     "Increase the parameter value in the config file." << std::endl;
+    }
     inputTape = new FileTape(inputTapeFilePath, tapeConfigData);
     outputTape = new FileTape(outputTapeFilePath, tapeConfigData);
-    initializeTempTapes();
-
-    sort();
+    initializeTempTapes();;
 }
 
 void TapesSorter::sort()
@@ -74,7 +82,7 @@ void TapesSorter::initializeSortedNumbersCount()
 void TapesSorter::fillTempTapesWithSortedChunks()
 {
     long long chunksNumber = sortedNumbersCount / mergeWaysNumber;
-    if (sortedNumbersCount % mergeWaysNumber)
+    if (sortedNumbersCount % mergeWaysNumber != 0)
         ++chunksNumber;
 
     std::vector<int> tempTapesOffsets(mergeWaysNumber, 0);
@@ -82,16 +90,19 @@ void TapesSorter::fillTempTapesWithSortedChunks()
     {
         int currentTempTapeIndex = i % mergeWaysNumber;
         FileTape* currentTempTape = tempTapes[currentTempTapeIndex];
+        int chunkValuesNumber = 0;
         for (int j = 0; j < mergeWaysNumber; ++j)
         {
             int readValue = 0;
             if (!inputTape->read(readValue))
                 continue;
+            
             inputTape->moveRight();
             RAMUtils::writeInt(tapesRAM, readValue, j * 4);
+            ++chunkValuesNumber;
         }
 
-        std::vector<int> chunkValues = RAMUtils::readIntVector(tapesRAM, 0, mergeWaysNumber);
+        std::vector<int> chunkValues = RAMUtils::readIntVector(tapesRAM, 0, chunkValuesNumber);
         std::sort(chunkValues.begin(), chunkValues.end());
         RAMUtils::writeIntVector(tapesRAM, chunkValues, 0);
 

@@ -366,6 +366,7 @@ bool FileTape::moveTapePointerRight()
     if (currentValueLastDigitPointer == tapeFileSize - 1)
     {
         std::string newValue { ValuesDelimiterSymbol,  EmptyValueSymbol };
+        tapeFile.seekg(currentValueLastDigitPointer + 1);
         tapeFile << newValue;
         tapeFilePointer = currentValueLastDigitPointer + 2;
     }
