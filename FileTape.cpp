@@ -53,9 +53,11 @@ bool FileTape::read(int& value)
         return false;
     }
 
-    tapeFile.seekg(tapeFilePointer, std::ios::beg);
-
     const std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
+    if (tapeFileSize <= 0)
+        return false;
+    
+    tapeFile.seekg(tapeFilePointer, std::ios::beg);
     int number = 0;
     char numberSymbol;
     tapeFile.get(numberSymbol);
@@ -69,7 +71,10 @@ bool FileTape::read(int& value)
     if (numberSymbol == '-')
     {
         if (!(tapeFile.get(numberSymbol) && std::isdigit(numberSymbol)))
+        {
+            tapeFile.seekg(tapeFilePointer, std::ios::beg);
             return false;
+        }
         
         isNegative = true;
     }
@@ -86,7 +91,8 @@ bool FileTape::read(int& value)
     
     executionTime += tapeConfigData.readDelay;
     value = number;
-    
+
+    tapeFile.seekg(tapeFilePointer, std::ios::beg);
     return true;
 }
 
@@ -94,6 +100,21 @@ bool FileTape::write(int value)
 {
     const std::string valueString = std::to_string(value);
     return writeString(valueString);
+}
+
+bool FileTape::isEmpty()
+{
+    if (!tapeFile.is_open() || tapeFile.fail())
+    {
+        std::cerr << "Cannot read the tape data file!" << std::endl;
+        return false;
+    }
+
+    tapeFile.seekg(tapeFilePointer, std::ios::beg);
+    char symbol;
+    tapeFile.get(symbol);
+    
+    return symbol == ' ';
 }
 
 bool FileTape::clearValue()
@@ -371,4 +392,9 @@ bool FileTape::moveTapePointerLeft()
 bool FileTape::isValueSymbol(char symbol)
 {
     return std::isdigit(symbol) || symbol == ' ' || symbol == '-';
+}
+
+FileTape::~FileTape()
+{
+    tapeFile.close();
 }

@@ -1,7 +1,6 @@
 #pragma once
 #include <fstream>
 #include <string>
-#include <vector>
 
 #include "ITape.h"
 #include "TapeConfigData.h"
@@ -15,10 +14,13 @@ public:
     bool moveRight() override;
     bool read(int& value) override;
     bool write(int value) override;
+    bool isEmpty() override;
     bool clearValue() override;
     bool rewindLeft(int cellsNumber) override;
     bool rewindRight(int cellsNumber) override;
     long long getExecutionTime();
+
+    ~FileTape();
     
 private:
     std::fstream tapeFile;

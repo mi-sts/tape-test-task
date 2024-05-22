@@ -15,7 +15,8 @@ TapesSorter::TapesSorter(
     mergeWaysNumber(4u),
     sortedNumbersCount(0),
     mergeToSecondHalf(true),
-    currentChunkSize(1)
+    currentChunkSize(1),
+    isSorted(false)
 {
     TapeConfigLoader::loadConfig(configFilePath, tapeConfigData);
     tapesRAM = TapesRAM(tapeConfigData.RAMBytesSize);
@@ -30,7 +31,12 @@ void TapesSorter::sort()
 {
     initializeSortedNumbersCount();
     fillTempTapesWithSortedChunks();
-    mergeChunksToAnotherHalf();
+
+    while (!isSorted)
+        mergeChunksToAnotherHalf();
+
+    saveSortedNumbers();
+    printStatistics();
 }
 
 void TapesSorter::initializeTempTapes()
@@ -39,8 +45,15 @@ void TapesSorter::initializeTempTapes()
     {
         std::fstream fileStream;
         std::string tempFilePath = FileUtils::createTempFile(fileStream);
+        tempTapesFilePaths.push_back(tempFilePath);
         tempTapes.push_back(new FileTape(tempFilePath, tapeConfigData));
     }
+}
+
+void TapesSorter::freeTempTapes()
+{
+    for (std::string tempTapeFilePath : tempTapesFilePaths)
+        FileUtils::deleteFile(tempTapeFilePath);
 }
 
 void TapesSorter::initializeSortedNumbersCount()
@@ -103,7 +116,7 @@ void TapesSorter::fillTempTapesWithSortedChunks()
 
 void TapesSorter::mergeChunksToAnotherHalf()
 {
-    int tapesCount = tempTapes.size();
+    size_t tapesCount = tempTapes.size();
     int fromTapesIndexOffset = 0;
     int toTapesIndexOffset = tapesCount / 2;
     if (!mergeToSecondHalf)
@@ -120,8 +133,8 @@ void TapesSorter::mergeChunksToAnotherHalf()
     if (chunksNumber % mergeWaysNumber != 0)
         ++oneTapeChunksNumber;
     
-    std::vector<int> currentChunkTapesIndices(mergeWaysNumber, 0);
-    
+    std::vector<int> fromTempTapesOffsets(mergeWaysNumber, 0);
+    std::vector<int> toTempTapesOffsets(mergeWaysNumber, 0);
     for (int i = 0; i < oneTapeChunksNumber; ++i)
     {
         std::vector<std::vector<int>> mergingChunks(mergeWaysNumber, std::vector<int>());
@@ -136,12 +149,10 @@ void TapesSorter::mergeChunksToAnotherHalf()
                 mergingChunks[j].push_back(currentValue);
                 currentTempTape->clearValue();
                 currentTempTape->moveRight();
-                ++currentTempTapeIndex;
+                ++fromTempTapesOffsets[j];
                 ++mergingValuesCount;
+                ++currentTempTapeIndex;
             }
-
-            for (int k = 0; k < currentTempTapeIndex; ++k)
-                currentTempTape->moveLeft();
         }
 
         std::vector<int> mergedChunks;
@@ -174,9 +185,86 @@ void TapesSorter::mergeChunksToAnotherHalf()
         {
             toTempTape->write(value);
             toTempTape->moveRight();
+            ++toTempTapesOffsets[toTapeIndex];
+        }
+    }
+
+    for (int k = 0; k < mergeWaysNumber; ++k)
+    {
+        FileTape* fromTempTape = tempTapes[fromTapesIndexOffset + k];
+        int tempTapeOffset = fromTempTapesOffsets[k];
+        for (int l = 0; l < tempTapeOffset; ++l)
+            fromTempTape->moveLeft();
+    }
+
+    for (int k = 0; k < mergeWaysNumber; ++k)
+    {
+        FileTape* toTempTape = tempTapes[toTapesIndexOffset + k];
+        int tempTapeOffset = toTempTapesOffsets[k];
+        for (int l = 0; l < tempTapeOffset; ++l)
+            toTempTape->moveLeft();
+    }
+
+    mergeToSecondHalf = !mergeToSecondHalf;
+    currentChunkSize *= mergeWaysNumber;
+
+    int notEmptyTapesCount = 0;
+    int lastNotEmptyTapeIndex = 0; 
+    for (size_t i = 0; i < toTempTapesOffsets.size(); ++i)
+    {
+        if (toTempTapesOffsets[i] > 0)
+        {
+            ++notEmptyTapesCount;
+            lastNotEmptyTapeIndex = toTapesIndexOffset + i;
+        }
+    }
+    isSorted = notEmptyTapesCount == 1;
+    if (isSorted)
+        sortedNumbersTempTapeIndex = lastNotEmptyTapeIndex;
+}
+
+void TapesSorter::saveSortedNumbers()
+{
+    FileTape* sortedNumbersTempTape = tempTapes[sortedNumbersTempTapeIndex];
+    int currentValue = 0;
+    for (int i = 0; i < sortedNumbersCount; ++i)
+    {
+        if (!sortedNumbersTempTape->read(currentValue))
+        {
+            std::cerr << "Some sorted numbers are missing!" << std::endl;
+            return;
         }
 
-        /*for (int j = 0; j < mergedChunks.size(); ++j)
-            toTempTape->moveLeft();*/
+        outputTape->write(currentValue);
+        outputTape->moveRight();
+        sortedNumbersTempTape->moveRight();
     }
+}
+
+int TapesSorter::getTotalExecutionTime()
+{
+    int totalExecutionTime = 0;
+    totalExecutionTime += inputTape->getExecutionTime();
+    totalExecutionTime += outputTape->getExecutionTime();
+    for (FileTape* tempTape : tempTapes)
+        totalExecutionTime += tempTape->getExecutionTime();
+
+    return totalExecutionTime;
+}
+
+void TapesSorter::printStatistics()
+{
+    int totalExecutionTime = getTotalExecutionTime();
+    std::cout << "Total execution time: " << totalExecutionTime << "." << std::endl;
+    std::cout << "Calculated using config parameters." << std::endl;
+}
+
+TapesSorter::~TapesSorter()
+{
+    delete inputTape;
+    delete outputTape;
+    for (FileTape* tempTape : tempTapes)
+        delete tempTape;
+
+    freeTempTapes();
 }
