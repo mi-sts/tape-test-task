@@ -12,9 +12,10 @@ std::string FileUtils::createTempFile(std::fstream& fileStream)
     const auto sinceEpochMilliseconds = std::chrono::duration_cast<milliseconds>(epochTime).count();
     std::ostringstream millisecondsStringStream;
     millisecondsStringStream << sinceEpochMilliseconds;
+    std::string randomIntString = std::to_string(rand());
     const std::string millisecondsString = millisecondsStringStream.str();
     
-    std::string tempFilePath = "tmp/tmpfile" + millisecondsString + ".txt";
+    std::string tempFilePath = "tmp/tmpfile" + millisecondsString + "_" + randomIntString + ".txt";
     fileStream.open(tempFilePath, std::ios::out | std::ios::in | std::ios::trunc);
     if (!fileStream.is_open())
     {

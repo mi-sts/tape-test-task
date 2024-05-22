@@ -24,7 +24,7 @@ private:
     std::vector<FileTape*> tempTapes;
     unsigned char mergeWaysNumber;
     long long sortedNumbersCount;
-    bool isFirstHalf;
+    bool mergeToSecondHalf;
     long long currentChunkSize;
 
     void initializeTempTapes();

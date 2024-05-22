@@ -54,6 +54,8 @@ bool FileTape::read(int& value)
     }
 
     tapeFile.seekg(tapeFilePointer, std::ios::beg);
+
+    const std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
     int number = 0;
     char numberSymbol;
     tapeFile.get(numberSymbol);
@@ -72,7 +74,6 @@ bool FileTape::read(int& value)
         isNegative = true;
     }
 
-    std::streamoff tapeFileSize = FileUtils::getFileSize(tapeFile);
     std::streamoff currentFilePointer = tapeFilePointer;
     do
     {
@@ -222,6 +223,10 @@ std::streamoff FileTape::getValueLastDigitPointer(std::streamoff fromPointer)
 
     char currentSymbol;
     tapeFile.get(currentSymbol);
+
+    if (currentSymbol == ' ')
+        return fromPointer;
+    
     if (currentPointer <= tapeFileSize - 1 && !isValueSymbol(currentSymbol))
     {
         std::cerr << "The pointer does not point to a digit!" << std::endl;
@@ -271,6 +276,10 @@ std::streamoff FileTape::getValueFirstDigitPointer(std::streamoff fromPointer)
     
     char currentSymbol;
     tapeFile.read(&currentSymbol, 1);
+    
+    if (currentSymbol == ' ')
+        return fromPointer;
+    
     if (currentPointer >= 0 && !isValueSymbol(currentSymbol))
     {
         std::cerr << "The pointer does not point to a digit!" << std::endl;
@@ -336,7 +345,6 @@ bool FileTape::moveTapePointerRight()
     if (currentValueLastDigitPointer == tapeFileSize - 1)
     {
         std::string newValue { ValuesDelimiterSymbol,  EmptyValueSymbol };
-        tapeFile.seekg(0, std::ios::end);
         tapeFile << newValue;
         tapeFilePointer = currentValueLastDigitPointer + 2;
     }
