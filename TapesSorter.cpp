@@ -1,6 +1,7 @@
 #include "TapesSorter.h"
 
 #include <algorithm>
+#include <valarray>
 
 #include "TapeConfigLoader.h"
 #include "utils/FileUtils.h"
@@ -21,10 +22,8 @@ TapesSorter::TapesSorter(
     isSorted(false)
 {
     TapeConfigLoader::loadConfig(configFilePath, tapeConfigData);
-    tapesRAM = TapesRAM(1000);
-    mergeWaysNumber = std::min<int>(tapeConfigData.RAMBytesSize / 4 / 2, MAX_TEMP_FILES_NUMBER);
-    if (mergeWaysNumber % 2 != 0)
-        --mergeWaysNumber;
+    tapesRAM = TapesRAM(tapeConfigData.RAMBytesSize);
+    mergeWaysNumber = std::min<int>(tapeConfigData.RAMBytesSize / 4, MAX_TEMP_FILES_NUMBER);
     if (mergeWaysNumber < 2)
     {
         std::cerr << "Not enough RAM for the sorting algorithm!\n"
@@ -32,7 +31,7 @@ TapesSorter::TapesSorter(
     }
     inputTape = new FileTape(inputTapeFilePath, tapeConfigData);
     outputTape = new FileTape(outputTapeFilePath, tapeConfigData);
-    initializeTempTapes();;
+    initializeTempTapes();
 }
 
 void TapesSorter::sort()
@@ -106,7 +105,7 @@ void TapesSorter::fillTempTapesWithSortedChunks()
         std::sort(chunkValues.begin(), chunkValues.end());
         RAMUtils::writeIntVector(tapesRAM, chunkValues, 0);
 
-        for (int j = 0; j < mergeWaysNumber; ++j)
+        for (int j = 0; j < chunkValuesNumber; ++j)
         {
             int sortedValue = RAMUtils::readInt(tapesRAM, j * 4);
             currentTempTape->write(sortedValue);
@@ -148,55 +147,82 @@ void TapesSorter::mergeChunksToAnotherHalf()
     std::vector<int> toTempTapesOffsets(mergeWaysNumber, 0);
     for (int i = 0; i < oneTapeChunksNumber; ++i)
     {
-        std::vector<std::vector<int>> mergingChunks(mergeWaysNumber, std::vector<int>());
-        int mergingValuesCount = 0;
+        std::vector<int> mergingChunksIndices(mergeWaysNumber, 0);
+        std::vector<bool> canReadChunk(mergeWaysNumber, true);
         for (int j = 0; j < mergeWaysNumber; ++j)
         {
             FileTape* currentTempTape = tempTapes[fromTapesIndexOffset + j];
-            int currentValue = 0;
-            int currentTempTapeIndex = 0;
-            while (currentTempTapeIndex < currentChunkSize && currentTempTape->read(currentValue))
+            int chunkFirstValue = 0;
+            if (!currentTempTape->read(chunkFirstValue))
             {
-                mergingChunks[j].push_back(currentValue);
-                currentTempTape->clearValue();
-                currentTempTape->moveRight();
-                ++fromTempTapesOffsets[j];
-                ++mergingValuesCount;
-                ++currentTempTapeIndex;
+                canReadChunk[j] = false;
+                continue;
             }
+
+            RAMUtils::writeInt(tapesRAM, chunkFirstValue, j * 4);
         }
 
-        std::vector<int> mergedChunks;
-        int mergedValues = 0;
-        while (mergedValues < mergingValuesCount)
+        int toTapeIndex = i % mergeWaysNumber;
+        bool canReadChunks = true;
+        FileTape* toTempTape = tempTapes[toTapesIndexOffset + toTapeIndex];
+        while (canReadChunks)
         {
             int minValue = INT_MAX;
             int minValueTapeIndex = 0;
+            bool haveMinValue = false;
             for (int j = 0; j < mergeWaysNumber; ++j)
             {
-                if (mergingChunks[j].empty())
+                if (!canReadChunk[j])
+                {
                     continue;
+                }
                 
-                int currentValue = mergingChunks[j][0];
+                int currentValue = RAMUtils::readInt(tapesRAM, j * 4);
                 if (currentValue < minValue)
                 {
                     minValue = currentValue;
                     minValueTapeIndex = j;
+                    haveMinValue = true;
                 }
             }
 
-            mergingChunks[minValueTapeIndex].erase(mergingChunks[minValueTapeIndex].begin());
-            mergedChunks.push_back(minValue);
-            ++mergedValues;
-        }
+            if (haveMinValue)
+            {
+                FileTape* minValueTape = tempTapes[fromTapesIndexOffset + minValueTapeIndex];
+                minValueTape->moveRight();
+                ++fromTempTapesOffsets[minValueTapeIndex];
+                ++mergingChunksIndices[minValueTapeIndex];
+                if (mergingChunksIndices[minValueTapeIndex] >= currentChunkSize)
+                {
+                    canReadChunk[minValueTapeIndex] = false;
+                }
+                else
+                {
+                    int nextToMinValue = 0;
+                    if (!minValueTape->read(nextToMinValue))
+                    {
+                        canReadChunk[minValueTapeIndex] = false;
+                    }
+                    else
+                    {
+                        RAMUtils::writeInt(tapesRAM, nextToMinValue, minValueTapeIndex * 4);
+                    }
+                }
 
-        int toTapeIndex = i % mergeWaysNumber;
-        FileTape* toTempTape = tempTapes[toTapesIndexOffset + toTapeIndex];
-        for (int value : mergedChunks)
-        {
-            toTempTape->write(value);
-            toTempTape->moveRight();
-            ++toTempTapesOffsets[toTapeIndex];
+                toTempTape->write(minValue);
+                toTempTape->moveRight();
+                ++toTempTapesOffsets[toTapeIndex];
+            }
+
+            canReadChunks = false;
+            for (int i = 0; i < mergeWaysNumber; ++i)
+            {
+                if (canReadChunk[i])
+                {
+                    canReadChunks = true;
+                    break;
+                }
+            }
         }
     }
 
@@ -205,7 +231,10 @@ void TapesSorter::mergeChunksToAnotherHalf()
         FileTape* fromTempTape = tempTapes[fromTapesIndexOffset + k];
         int tempTapeOffset = fromTempTapesOffsets[k];
         for (int l = 0; l < tempTapeOffset; ++l)
+        {
             fromTempTape->moveLeft();
+            fromTempTape->clearValue();
+        }
     }
 
     for (int k = 0; k < mergeWaysNumber; ++k)
