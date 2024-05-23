@@ -69,12 +69,12 @@ void TapesSorter::initializeSortedNumbersCount()
     while (inputTape->read(currentValue))
     {
         ++sortedNumbersCount;
-        inputTape->moveRight();
+        inputTape->moveTapeLeft();
     }
 
     for (int i = 0; i < sortedNumbersCount; ++i)
     {
-        inputTape->moveLeft();
+        inputTape->moveTapeRight();
     }
 }
 
@@ -96,7 +96,7 @@ void TapesSorter::fillTempTapesWithSortedChunks()
             if (!inputTape->read(readValue))
                 continue;
             
-            inputTape->moveRight();
+            inputTape->moveTapeLeft();
             RAMUtils::writeInt(tapesRAM, readValue, j * 4);
             ++chunkValuesNumber;
         }
@@ -109,7 +109,7 @@ void TapesSorter::fillTempTapesWithSortedChunks()
         {
             int sortedValue = RAMUtils::readInt(tapesRAM, j * 4);
             currentTempTape->write(sortedValue);
-            currentTempTape->moveRight();
+            currentTempTape->moveTapeLeft();
             ++tempTapesOffsets[currentTempTapeIndex];
         }
     }
@@ -118,7 +118,7 @@ void TapesSorter::fillTempTapesWithSortedChunks()
     {
         const int tempTapeOffset = tempTapesOffsets[i];
         for (int j = 0; j < tempTapeOffset; ++j)
-            tempTapes[i]->moveLeft();
+            tempTapes[i]->moveTapeRight();
     }
     
     currentChunkSize = mergeWaysNumber;
@@ -189,7 +189,7 @@ void TapesSorter::mergeChunksToAnotherHalf()
             if (haveMinValue)
             {
                 FileTape* minValueTape = tempTapes[fromTapesIndexOffset + minValueTapeIndex];
-                minValueTape->moveRight();
+                minValueTape->moveTapeLeft();
                 ++fromTempTapesOffsets[minValueTapeIndex];
                 ++mergingChunksIndices[minValueTapeIndex];
                 if (mergingChunksIndices[minValueTapeIndex] >= currentChunkSize)
@@ -210,7 +210,7 @@ void TapesSorter::mergeChunksToAnotherHalf()
                 }
 
                 toTempTape->write(minValue);
-                toTempTape->moveRight();
+                toTempTape->moveTapeLeft();
                 ++toTempTapesOffsets[toTapeIndex];
             }
 
@@ -232,7 +232,7 @@ void TapesSorter::mergeChunksToAnotherHalf()
         int tempTapeOffset = fromTempTapesOffsets[k];
         for (int l = 0; l < tempTapeOffset; ++l)
         {
-            fromTempTape->moveLeft();
+            fromTempTape->moveTapeRight();
             fromTempTape->clearValue();
         }
     }
@@ -242,7 +242,7 @@ void TapesSorter::mergeChunksToAnotherHalf()
         FileTape* toTempTape = tempTapes[toTapesIndexOffset + k];
         int tempTapeOffset = toTempTapesOffsets[k];
         for (int l = 0; l < tempTapeOffset; ++l)
-            toTempTape->moveLeft();
+            toTempTape->moveTapeRight();
     }
 
     mergeToSecondHalf = !mergeToSecondHalf;
@@ -276,8 +276,8 @@ void TapesSorter::saveSortedNumbers()
         }
 
         outputTape->write(currentValue);
-        outputTape->moveRight();
-        sortedNumbersTempTape->moveRight();
+        outputTape->moveTapeLeft();
+        sortedNumbersTempTape->moveTapeLeft();
     }
 }
 

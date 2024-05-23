@@ -10,14 +10,14 @@ class FileTape : ITape
 public:
     FileTape(const std::string& tapeFilePath, const TapeConfigData& tapeConfigData);
     
-    bool moveLeft() override;
-    bool moveRight() override;
+    bool moveTapeRight() override;
+    bool moveTapeLeft() override;
     bool read(int& value) override;
     bool write(int value) override;
     bool isEmpty() override;
     bool clearValue() override;
-    bool rewindLeft(int cellsNumber) override;
-    bool rewindRight(int cellsNumber) override;
+    bool rewindTapeRight(int cellsNumber) override;
+    bool rewindTapeLeft(int cellsNumber) override;
     long long getExecutionTime();
 
     ~FileTape();

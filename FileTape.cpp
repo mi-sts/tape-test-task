@@ -15,7 +15,7 @@ FileTape::FileTape(const std::string& tapeFilePath, const TapeConfigData& tapeCo
     initializeTapeData(tapeFilePath);
 }
 
-bool FileTape::moveLeft()
+bool FileTape::moveTapeRight()
 {
     if (cellIndex == 0)
     {
@@ -33,7 +33,7 @@ bool FileTape::moveLeft()
     return isMoved;
 }
 
-bool FileTape::moveRight()
+bool FileTape::moveTapeLeft()
 {
     const bool isMoved = moveTapePointerRight();
     if (isMoved)
@@ -122,7 +122,7 @@ bool FileTape::clearValue()
     return writeString(" ");
 }
 
-bool FileTape::rewindLeft(int cellsNumber)
+bool FileTape::rewindTapeRight(int cellsNumber)
 {
     if (cellIndex < cellsNumber)
         return false;
@@ -140,7 +140,7 @@ bool FileTape::rewindLeft(int cellsNumber)
     return movementsNumber == cellsNumber;
 }
 
-bool FileTape::rewindRight(int cellsNumber)
+bool FileTape::rewindTapeLeft(int cellsNumber)
 {
     int movementsNumber = 0;
     for (movementsNumber = 0; movementsNumber < cellsNumber; ++movementsNumber)
